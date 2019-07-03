@@ -1,6 +1,6 @@
 import React, { Component } from 'react';
 import Icon from 'react-native-vector-icons/MaterialIcons';
-import { Keyboard } from 'react-native';
+import { Keyboard, ActivityIndicator } from 'react-native';
 import {
   Container,
   SubmitButton,
@@ -20,10 +20,13 @@ export default class Main extends Component {
   state = {
     users: [],
     newUser: '',
+    loading: false,
   };
 
   handleAddUser = async () => {
     const { newUser, users } = this.state;
+
+    this.setState({ loading: true });
 
     const response = await api.get(`/users/${newUser}`);
 
@@ -34,13 +37,13 @@ export default class Main extends Component {
       avatar: response.data.avatar_url,
     };
 
-    this.setState({ users: [...users, user], newUser: '' });
+    this.setState({ users: [...users, user], newUser: '', loading: false });
 
     Keyboard.dismiss();
   };
 
   render() {
-    const { users, newUser } = this.state;
+    const { users, newUser, loading } = this.state;
     return (
       <Container>
         <Form>
@@ -54,7 +57,11 @@ export default class Main extends Component {
             onSubmitEditing={this.handleAddUser}
           />
           <SubmitButton onPress={this.handleAddUser}>
-            <Icon name="add" size={20} color="#FFF" />
+            {loading ? (
+              <ActivityIndicator color="#fff" />
+            ) : (
+              <Icon name="add" size={20} color="#FFF" />
+            )}
           </SubmitButton>
         </Form>
         <List
@@ -65,7 +72,7 @@ export default class Main extends Component {
               <Avatar source={{ uri: item.avatar }} />
               <Name>{item.name}</Name>
               <Bio>{item.bio}</Bio>
-              <ProfileButton onPress={() => {}}>
+              <ProfileButton loading={loading} onPress={() => {}}>
                 <ProfileButtonText>Ver Perfil</ProfileButtonText>
               </ProfileButton>
             </User>
