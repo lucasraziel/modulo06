@@ -25,52 +25,62 @@ export default class User extends Component {
   static propTypes = {
     navigation: PropTypes.shape({
       getParam: PropTypes.func,
+      navigate: PropTypes.func,
     }).isRequired,
   };
 
   state = {
     stars: [],
     loading: true,
-    page: 0,
-    loadingEnd: false,
+    page: 1,
+    refreshing: false,
   };
 
   componentDidMount() {
     this.update();
   }
 
-  componentDidUpdate(_, _prevState) {
-    const { stars } = this.state;
-    if (_prevState.stars !== stars) {
-      this.update();
-    }
-  }
+  handleEndReached = () => {
+    const { page } = this.state;
+    this.setState({ loading: true, page: page + 1 });
 
-  handleEndReached = async () => {
-    this.setState({ loadingEnd: true });
+    this.update(page + 1, true);
   };
 
-  async update() {
+  refreshList = () => {
+    this.setState({ page: 1, refreshing: true });
+    this.update(1, true);
+  };
+
+  update = async (page = 1, refreshing = false) => {
     const { navigation } = this.props;
     const user = navigation.getParam('user');
-    const { page } = this.state;
+    const { stars } = this.state;
 
-    const response = await api.get(
-      `/users/${user.login}/starred?page=${page + 1}`
-    );
+    const response = await api.get(`/users/${user.login}/starred?page=${page}`);
+    let newStars = [];
+    if (refreshing) {
+      newStars = response.data;
+    } else {
+      newStars = [...stars, ...response.data];
+    }
 
     this.setState({
-      stars: response.data,
+      stars: newStars,
       loading: false,
-      page: page + 1,
-      loadingEnd: false,
+      refreshing: false,
     });
-  }
+  };
+
+  handleNavigate = starred => {
+    const { navigation } = this.props;
+    navigation.navigate('Starred', { starred });
+  };
 
   render() {
     const { navigation } = this.props;
     const user = navigation.getParam('user');
-    const { stars, loading, loadingEnd } = this.state;
+    const { stars, loading, refreshing } = this.state;
     return (
       <Container>
         <Header>
@@ -83,10 +93,12 @@ export default class User extends Component {
         ) : (
           <Stars
             data={stars}
-            onEndReached={this.handleEndReached}
             keyExtractor={star => String(star.id)}
+            refreshing={refreshing}
+            onRefresh={this.refreshList}
+            onEndReachedThreshold={0.2}
             renderItem={({ item }) => (
-              <Starred>
+              <Starred onPress={() => this.handleNavigate(item)}>
                 <OwnerAvatar source={{ uri: item.owner.avatar_url }} />
                 <Info>
                   <Title>{item.name}</Title>
@@ -96,7 +108,6 @@ export default class User extends Component {
             )}
           />
         )}
-        {loadingEnd && <ActivityIndicator color="#7159c1" />}
       </Container>
     );
   }

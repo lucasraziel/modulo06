@@ -4,9 +4,11 @@ import Main from './pages/Main';
 
 import User from './pages/User';
 
+import Starred from './pages/Starred';
+
 const Routes = createAppContainer(
   createStackNavigator(
-    { Main, User },
+    { Main, User, Starred },
     {
       headerLayoutPreset: 'center',
       headerBackTitleVisible: false,
