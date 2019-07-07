@@ -34,28 +34,29 @@ export default class User extends Component {
     loading: true,
     page: 1,
     refreshing: false,
+    refreshingEnd: false,
   };
 
   componentDidMount() {
     this.update();
   }
 
-  handleEndReached = () => {
+  handleEndReached = async () => {
     const { page } = this.state;
-    this.setState({ loading: true, page: page + 1 });
+    await this.setState({ refreshingEnd: true, page: page + 1 });
 
-    this.update(page + 1, true);
+    this.update();
   };
 
-  refreshList = () => {
-    this.setState({ page: 1, refreshing: true });
-    this.update(1, true);
+  refreshList = async () => {
+    await this.setState({ page: 1, refreshing: true });
+    this.update();
   };
 
-  update = async (page = 1, refreshing = false) => {
+  update = async () => {
     const { navigation } = this.props;
     const user = navigation.getParam('user');
-    const { stars } = this.state;
+    const { stars, page, refreshing } = this.state;
 
     const response = await api.get(`/users/${user.login}/starred?page=${page}`);
     let newStars = [];
@@ -69,6 +70,7 @@ export default class User extends Component {
       stars: newStars,
       loading: false,
       refreshing: false,
+      refreshingEnd: false,
     });
   };
 
@@ -80,7 +82,7 @@ export default class User extends Component {
   render() {
     const { navigation } = this.props;
     const user = navigation.getParam('user');
-    const { stars, loading, refreshing } = this.state;
+    const { stars, loading, refreshing, refreshingEnd } = this.state;
     return (
       <Container>
         <Header>
@@ -97,6 +99,10 @@ export default class User extends Component {
             refreshing={refreshing}
             onRefresh={this.refreshList}
             onEndReachedThreshold={0.2}
+            onEndReached={this.handleEndReached}
+            ListFooterComponent={() =>
+              refreshingEnd ? <ActivityIndicator color="#7159c1" /> : null
+            }
             renderItem={({ item }) => (
               <Starred onPress={() => this.handleNavigate(item)}>
                 <OwnerAvatar source={{ uri: item.owner.avatar_url }} />
